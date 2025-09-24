@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GOODS Sorting Game - 商品消除遊戲</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- 遊戲標題 -->
+        <header class="game-header">
+            <h1>🎯 GOODS SORTING GAME</h1>
+            <div class="game-info">
+                <div class="score-display">
+                    <span class="label">分數：</span>
+                    <span id="score">0</span>
+                </div>
+                <div class="timer-display">
+                    <span class="label">時間：</span>
+                    <span id="timer">60</span>秒
+                </div>
+                <div class="level-display">
+                    <span class="label">關卡：</span>
+                    <span id="level">1</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- 遊戲區域 -->
+        <main class="game-main">
+            <!-- 遊戲網格 -->
+            <div class="game-board">
+                <div id="game-grid" class="game-grid">
+                    <!-- 8x8 網格將由JavaScript動態生成 -->
+                </div>
+            </div>
+            
+            <!-- 遊戲提示 -->
+            <div class="game-hints">
+                <div class="hint-item">
+                    <span class="hint-icon">👆</span>
+                    <span class="hint-text">點擊選擇糖果</span>
+                </div>
+                <div class="hint-item">
+                    <span class="hint-icon">🔄</span>
+                    <span class="hint-text">與相鄰糖果交換</span>
+                </div>
+                <div class="hint-item">
+                    <span class="hint-icon">✨</span>
+                    <span class="hint-text">三個以上連成線消除</span>
+                </div>
+            </div>
+        </main>
+
+        <!-- 遊戲控制按鈕 -->
+        <div class="game-controls">
+            <button id="start-btn" class="btn btn-start">開始遊戲</button>
+            <button id="pause-btn" class="btn btn-pause" disabled>暫停</button>
+            <button id="restart-btn" class="btn btn-restart">重新開始</button>
+        </div>
+
+        <!-- 遊戲狀態提示 -->
+        <div id="game-message" class="game-message hidden">
+            <div class="message-content">
+                <h2 id="message-title"></h2>
+                <p id="message-text"></p>
+                <button id="message-btn" class="btn">確定</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

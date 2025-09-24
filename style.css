@@ -1,0 +1,526 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #333;
+}
+
+.game-container {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    max-width: 800px;
+    width: 90%;
+    min-height: 700px;
+}
+
+/* 遊戲標題區域 */
+.game-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.game-header h1 {
+    color: #4a5568;
+    font-size: 2.5em;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.game-info {
+    display: flex;
+    justify-content: space-around;
+    background: rgba(102, 126, 234, 0.1);
+    padding: 15px;
+    border-radius: 15px;
+    border: 2px solid rgba(102, 126, 234, 0.2);
+}
+
+.game-info > div {
+    text-align: center;
+}
+
+.game-info .label {
+    font-weight: bold;
+    color: #667eea;
+    margin-right: 5px;
+}
+
+.game-info span:not(.label) {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #4a5568;
+}
+
+/* 遊戲主要區域 */
+.game-main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+/* 遊戲版面 */
+.game-board {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    border: 3px solid rgba(102, 126, 234, 0.3);
+}
+
+.game-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    gap: 2px;
+    width: 400px;
+    height: 400px;
+    background: rgba(102, 126, 234, 0.2);
+    border-radius: 10px;
+    padding: 10px;
+}
+
+/* 糖果格子 */
+.candy-cell {
+    width: 45px;
+    height: 45px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.8em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: rgba(255, 255, 255, 0.8);
+    border: 2px solid transparent;
+    position: relative;
+    user-select: none;
+}
+
+.candy-cell:hover {
+    transform: scale(1.1);
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.candy-cell.selected {
+    border-color: #ffd700;
+    background: rgba(255, 215, 0, 0.3);
+    transform: scale(1.15);
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+}
+
+.candy-cell.possible-move {
+    border-color: #00ff00;
+    background: rgba(0, 255, 0, 0.2);
+}
+
+/* 糖果類型樣式 */
+.candy-cell[data-type="red"] {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+    color: white;
+}
+
+.candy-cell[data-type="blue"] {
+    background: linear-gradient(135deg, #74b9ff, #0984e3);
+    color: white;
+}
+
+.candy-cell[data-type="green"] {
+    background: linear-gradient(135deg, #55a3ff, #00b894);
+    color: white;
+}
+
+.candy-cell[data-type="yellow"] {
+    background: linear-gradient(135deg, #fdcb6e, #e17055);
+    color: white;
+}
+
+.candy-cell[data-type="purple"] {
+    background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+    color: white;
+}
+
+.candy-cell[data-type="orange"] {
+    background: linear-gradient(135deg, #fd79a8, #e84393);
+    color: white;
+}
+
+/* 遊戲提示 */
+.game-hints {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.hint-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 10px 15px;
+    border-radius: 20px;
+    border: 2px solid rgba(102, 126, 234, 0.3);
+    font-size: 0.9em;
+    color: #4a5568;
+}
+
+.hint-icon {
+    font-size: 1.2em;
+}
+
+/* 交換動畫 */
+@keyframes swap-out {
+    0% { transform: scale(1) translate(0, 0); }
+    50% { transform: scale(0.8); }
+    100% { transform: scale(1); }
+}
+
+@keyframes swap-in {
+    0% { transform: scale(0.8); }
+    100% { transform: scale(1); }
+}
+
+.candy-cell.swapping-out {
+    animation: swap-out 0.3s ease-in-out;
+}
+
+.candy-cell.swapping-in {
+    animation: swap-in 0.3s ease-in-out;
+}
+
+/* 消除動畫 */
+@keyframes eliminate-candy {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.3) rotate(180deg);
+        opacity: 0.7;
+    }
+    100% {
+        transform: scale(0) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+.candy-cell.eliminating {
+    animation: eliminate-candy 0.5s ease-in-out forwards;
+}
+
+/* 掉落動畫 */
+@keyframes fall-down {
+    0% {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.candy-cell.falling {
+    animation: fall-down 0.4s ease-out;
+}
+
+/* 遊戲控制按鈕 */
+.game-controls {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 25px;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.btn-start {
+    background: linear-gradient(135deg, #00b894 0%, #55a3ff 100%);
+    color: white;
+}
+
+.btn-pause {
+    background: linear-gradient(135deg, #fdcb6e 0%, #e17055 100%);
+    color: white;
+}
+
+.btn-restart {
+    background: linear-gradient(135deg, #fd79a8 0%, #fdcb6e 100%);
+    color: white;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* 遊戲訊息彈出視窗 */
+.game-message {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    transition: all 0.3s ease;
+}
+
+.game-message.hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.message-content {
+    background: white;
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    max-width: 400px;
+    width: 90%;
+}
+
+.message-content h2 {
+    color: #4a5568;
+    margin-bottom: 20px;
+    font-size: 2em;
+}
+
+.message-content p {
+    color: #666;
+    margin-bottom: 30px;
+    font-size: 1.2em;
+}
+
+/* 消除動畫 */
+@keyframes eliminate {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.3);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(0);
+        opacity: 0;
+    }
+}
+
+.goods-item.eliminating {
+    animation: eliminate 0.6s ease-in-out forwards;
+}
+
+/* 成功消除的特效 */
+@keyframes success-flash {
+    0% { background-color: rgba(34, 197, 94, 0.2); }
+    50% { background-color: rgba(34, 197, 94, 0.6); }
+    100% { background-color: rgba(255, 255, 255, 0.8); }
+}
+
+.sort-slot.success-flash {
+    animation: success-flash 0.8s ease-in-out;
+}
+
+/* 粒子效果 */
+@keyframes sparkle {
+    0% {
+        transform: scale(0) rotate(0deg);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1) rotate(180deg);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(0) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+.sparkle {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: linear-gradient(45deg, #ffd700, #ff6b6b);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: sparkle 1s ease-out forwards;
+}
+
+/* 分數增加動畫 */
+@keyframes score-popup {
+    0% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: translateY(-30px) scale(1.2);
+        opacity: 0.9;
+    }
+    100% {
+        transform: translateY(-50px) scale(0.8);
+        opacity: 0;
+    }
+}
+
+.score-popup {
+    position: absolute;
+    color: #00b894;
+    font-weight: bold;
+    font-size: 1.5em;
+    pointer-events: none;
+    z-index: 1000;
+    animation: score-popup 1.5s ease-out forwards;
+}
+
+/* 時間警告動畫 */
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.timer-warning {
+    animation: pulse 0.5s infinite, shake 0.1s infinite;
+    color: #e74c3c !important;
+}
+
+/* 升級效果 */
+@keyframes level-up {
+    0% {
+        transform: scale(1);
+        background: rgba(255, 255, 255, 0.95);
+    }
+    50% {
+        transform: scale(1.05);
+        background: rgba(255, 215, 0, 0.3);
+        box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+    }
+    100% {
+        transform: scale(1);
+        background: rgba(255, 255, 255, 0.95);
+    }
+}
+
+.level-up-effect {
+    animation: level-up 1s ease-in-out;
+}
+
+/* 商品彈跳進入動畫 */
+@keyframes bounce-in {
+    0% {
+        transform: scale(0) translateY(-100px);
+        opacity: 0;
+    }
+    60% {
+        transform: scale(1.2) translateY(0);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+}
+
+.goods-item.bounce-in {
+    animation: bounce-in 0.6s ease-out forwards;
+}
+
+/* 拖拽軌跡效果 */
+@keyframes trail {
+    0% {
+        opacity: 0.8;
+        transform: scale(0.8);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.3);
+    }
+}
+
+.drag-trail {
+    position: absolute;
+    pointer-events: none;
+    border-radius: 50%;
+    animation: trail 0.5s ease-out forwards;
+    z-index: 999;
+}
+
+/* 連擊效果 */
+@keyframes combo-flash {
+    0% { background-color: rgba(255, 215, 0, 0.8); transform: scale(1); }
+    50% { background-color: rgba(255, 69, 0, 0.8); transform: scale(1.1); }
+    100% { background-color: rgba(34, 197, 94, 0.8); transform: scale(1); }
+}
+
+.combo-effect {
+    animation: combo-flash 0.8s ease-in-out;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .game-main {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .game-info {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .sorting-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .goods-item {
+        width: 50px;
+        height: 50px;
+        font-size: 1.5em;
+    }
+}
