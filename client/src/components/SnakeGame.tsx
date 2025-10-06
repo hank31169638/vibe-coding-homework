@@ -12,15 +12,41 @@ const SnakeGame = () => {
     direction,
     score,
     highScore,
+    difficulty,
+    slowEffect,
     gameLoop,
     changeDirection,
     startGame,
     resetGame,
     pauseGame,
-    resumeGame
+    resumeGame,
+    setDifficulty
   } = useSnakeGame();
 
-  const { playHit, playSuccess } = useAudio();
+  const { 
+    playHit, 
+    playSuccess, 
+    setBackgroundMusic, 
+    setHitSound, 
+    setSuccessSound,
+    isMuted,
+    isMusicPlaying,
+    toggleMute,
+    toggleMusic
+  } = useAudio();
+
+  // Initialize audio on component mount
+  useEffect(() => {
+    const bgMusic = new Audio('/sounds/background.mp3');
+    const hitSnd = new Audio('/sounds/hit.mp3');
+    const successSnd = new Audio('/sounds/success.mp3');
+    
+    setBackgroundMusic(bgMusic);
+    setHitSound(hitSnd);
+    setSuccessSound(successSnd);
+    
+    console.log('Audio initialized');
+  }, [setBackgroundMusic, setHitSound, setSuccessSound]);
 
   // Handle keyboard input
   const handleKeyPress = useCallback((event: KeyboardEvent) => {
@@ -80,11 +106,19 @@ const SnakeGame = () => {
     };
   }, [handleKeyPress]);
 
-  // Game loop effect
+  // Game loop effect with difficulty-based speed and slow effect
   useEffect(() => {
     let gameInterval: NodeJS.Timeout;
 
     if (gameState === 'playing') {
+      // Base speed based on difficulty: easy = 200ms, medium = 150ms, hard = 100ms
+      let speed = difficulty === 'easy' ? 200 : difficulty === 'hard' ? 100 : 150;
+      
+      // Apply slow effect (1.5x slower)
+      if (slowEffect > 0) {
+        speed = Math.floor(speed * 1.5);
+      }
+      
       gameInterval = setInterval(() => {
         const result = gameLoop();
         
@@ -95,7 +129,7 @@ const SnakeGame = () => {
         if (result.gameOver) {
           playHit();
         }
-      }, 150); // Game speed - adjust as needed
+      }, speed);
     }
 
     return () => {
@@ -103,7 +137,7 @@ const SnakeGame = () => {
         clearInterval(gameInterval);
       }
     };
-  }, [gameState, gameLoop, playHit, playSuccess]);
+  }, [gameState, difficulty, slowEffect, gameLoop, playHit, playSuccess]);
 
   return (
     <div style={{
@@ -117,16 +151,23 @@ const SnakeGame = () => {
         score={score}
         highScore={highScore}
         gameState={gameState}
+        difficulty={difficulty}
+        isMuted={isMuted}
+        isMusicPlaying={isMusicPlaying}
         onStart={startGame}
         onRestart={resetGame}
         onPause={pauseGame}
         onResume={resumeGame}
+        onDifficultyChange={setDifficulty}
+        onToggleMute={toggleMute}
+        onToggleMusic={toggleMusic}
       />
       
       <GameCanvas 
         snake={snake}
         food={food}
         gameState={gameState}
+        slowEffect={slowEffect}
       />
 
       <div style={{
@@ -137,6 +178,18 @@ const SnakeGame = () => {
       }}>
         <p>Use Arrow Keys or WASD to move</p>
         <p>Press SPACE to pause/resume • Press ENTER to start/restart</p>
+        <div style={{ 
+          marginTop: '10px', 
+          padding: '10px', 
+          backgroundColor: '#2a2a2a', 
+          borderRadius: '6px',
+          fontSize: '12px'
+        }}>
+          <p style={{ fontWeight: '600', marginBottom: '5px' }}>Food Types:</p>
+          <p><span style={{ color: '#ff4444' }}>🔴 Red</span> = Normal (+10 points)</p>
+          <p><span style={{ color: '#ffaa00' }}>🟡 Gold (x2)</span> = Double Points (+20)</p>
+          <p><span style={{ color: '#00aaff' }}>🔵 Blue (S)</span> = Slow Effect (easier control)</p>
+        </div>
       </div>
     </div>
   );

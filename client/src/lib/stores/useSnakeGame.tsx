@@ -9,16 +9,25 @@ export interface Position {
 
 export type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
 export type GameState = 'ready' | 'playing' | 'paused' | 'gameOver';
+export type Difficulty = 'easy' | 'medium' | 'hard';
+export type FoodType = 'normal' | 'double' | 'slow';
+
+export interface Food {
+  position: Position;
+  type: FoodType;
+}
 
 interface SnakeGameState {
   // Game state
   gameState: GameState;
   snake: Position[];
-  food: Position;
+  food: Food;
   direction: Direction;
   nextDirection: Direction;
   score: number;
   highScore: number;
+  difficulty: Difficulty;
+  slowEffect: number;
 
   // Actions
   startGame: () => void;
@@ -26,7 +35,8 @@ interface SnakeGameState {
   pauseGame: () => void;
   resumeGame: () => void;
   changeDirection: (newDirection: Direction) => void;
-  gameLoop: () => { foodEaten: boolean; gameOver: boolean };
+  setDifficulty: (difficulty: Difficulty) => void;
+  gameLoop: () => { foodEaten: boolean; gameOver: boolean; foodType?: FoodType };
 }
 
 const GRID_WIDTH = 20;
@@ -51,21 +61,40 @@ const saveHighScore = (score: number): void => {
   }
 };
 
+// Generate special food with random type
+const generateSpecialFood = (snake: Position[], gridWidth: number, gridHeight: number): Food => {
+  const position = generateFood(snake, gridWidth, gridHeight);
+  
+  // 70% normal, 20% double, 10% slow
+  const rand = Math.random();
+  let type: FoodType = 'normal';
+  
+  if (rand > 0.9) {
+    type = 'slow';
+  } else if (rand > 0.7) {
+    type = 'double';
+  }
+  
+  return { position, type };
+};
+
 export const useSnakeGame = create<SnakeGameState>()(
   subscribeWithSelector((set, get) => ({
     // Initial state
     gameState: 'ready',
     snake: [{ x: 10, y: 10 }],
-    food: { x: 5, y: 5 },
+    food: { position: { x: 5, y: 5 }, type: 'normal' },
     direction: 'RIGHT',
     nextDirection: 'RIGHT',
     score: 0,
     highScore: loadHighScore(),
+    difficulty: 'medium',
+    slowEffect: 0,
 
     startGame: () => {
       console.log('Starting game...');
       const initialSnake = [{ x: 10, y: 10 }];
-      const initialFood = generateFood(initialSnake, GRID_WIDTH, GRID_HEIGHT);
+      const initialFood = generateSpecialFood(initialSnake, GRID_WIDTH, GRID_HEIGHT);
       
       set({
         gameState: 'playing',
@@ -73,14 +102,15 @@ export const useSnakeGame = create<SnakeGameState>()(
         food: initialFood,
         direction: 'RIGHT',
         nextDirection: 'RIGHT',
-        score: 0
+        score: 0,
+        slowEffect: 0
       });
     },
 
     resetGame: () => {
       console.log('Resetting game...');
       const initialSnake = [{ x: 10, y: 10 }];
-      const initialFood = generateFood(initialSnake, GRID_WIDTH, GRID_HEIGHT);
+      const initialFood = generateSpecialFood(initialSnake, GRID_WIDTH, GRID_HEIGHT);
       
       set({
         gameState: 'ready',
@@ -88,7 +118,8 @@ export const useSnakeGame = create<SnakeGameState>()(
         food: initialFood,
         direction: 'RIGHT',
         nextDirection: 'RIGHT',
-        score: 0
+        score: 0,
+        slowEffect: 0
       });
     },
 
@@ -117,6 +148,11 @@ export const useSnakeGame = create<SnakeGameState>()(
         console.log(`Changing direction to: ${newDirection}`);
         set({ nextDirection: newDirection });
       }
+    },
+
+    setDifficulty: (difficulty: Difficulty) => {
+      console.log(`Setting difficulty to: ${difficulty}`);
+      set({ difficulty });
     },
 
     gameLoop: () => {
@@ -180,13 +216,29 @@ export const useSnakeGame = create<SnakeGameState>()(
       const newSnake = [newHead, ...state.snake];
 
       // Check food collision
-      const foodEaten = newHead.x === state.food.x && newHead.y === state.food.y;
+      const foodEaten = newHead.x === state.food.position.x && newHead.y === state.food.position.y;
       
       if (foodEaten) {
-        console.log('Food eaten! Score:', state.score + 10);
+        const foodType = state.food.type;
+        let pointsEarned = 10;
+        let newSlowEffect = state.slowEffect;
+        
+        // Apply food type effects
+        if (foodType === 'double') {
+          pointsEarned = 20;
+          console.log('Double points food eaten! +20 points');
+        } else if (foodType === 'slow') {
+          // Slow effect duration based on difficulty: easy=5, medium=7, hard=10 moves
+          const slowDuration = state.difficulty === 'easy' ? 5 : state.difficulty === 'hard' ? 10 : 7;
+          newSlowEffect = slowDuration;
+          console.log(`Slow food eaten! Speed reduced for ${slowDuration} moves`);
+        } else {
+          console.log('Normal food eaten! +10 points');
+        }
+        
         // Keep the tail, snake grows
-        const newFood = generateFood(newSnake, GRID_WIDTH, GRID_HEIGHT);
-        const newScore = state.score + 10;
+        const newFood = generateSpecialFood(newSnake, GRID_WIDTH, GRID_HEIGHT);
+        const newScore = state.score + pointsEarned;
         const newHighScore = Math.max(newScore, state.highScore);
         
         if (newHighScore > state.highScore) {
@@ -198,17 +250,22 @@ export const useSnakeGame = create<SnakeGameState>()(
           food: newFood,
           direction: currentDirection,
           score: newScore,
-          highScore: newHighScore
+          highScore: newHighScore,
+          slowEffect: newSlowEffect
         });
         
-        return { foodEaten: true, gameOver: false };
+        return { foodEaten: true, gameOver: false, foodType };
       } else {
         // Remove tail, snake doesn't grow
         newSnake.pop();
         
+        // Decrease slow effect
+        const newSlowEffect = Math.max(0, state.slowEffect - 1);
+        
         set({
           snake: newSnake,
-          direction: currentDirection
+          direction: currentDirection,
+          slowEffect: newSlowEffect
         });
         
         return { foodEaten: false, gameOver: false };

@@ -1,17 +1,18 @@
 import { useRef, useEffect } from 'react';
-import { Position } from '../lib/stores/useSnakeGame';
+import { Position, Food } from '../lib/stores/useSnakeGame';
 
 interface GameCanvasProps {
   snake: Position[];
-  food: Position;
+  food: Food;
   gameState: string;
+  slowEffect: number;
 }
 
 const GRID_SIZE = 20;
 const CANVAS_WIDTH = 400;
 const CANVAS_HEIGHT = 400;
 
-const GameCanvas = ({ snake, food, gameState }: GameCanvasProps) => {
+const GameCanvas = ({ snake, food, gameState, slowEffect }: GameCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -41,19 +42,45 @@ const GameCanvas = ({ snake, food, gameState }: GameCanvasProps) => {
       ctx.stroke();
     }
 
-    // Draw food
-    ctx.fillStyle = '#ff4444';
+    // Draw food with different colors based on type
+    let foodColor = '#ff4444'; // Normal food (red)
+    if (food.type === 'double') {
+      foodColor = '#ffaa00'; // Double points (gold)
+    } else if (food.type === 'slow') {
+      foodColor = '#00aaff'; // Slow effect (blue)
+    }
+    
+    ctx.fillStyle = foodColor;
     ctx.fillRect(
-      food.x * GRID_SIZE + 1,
-      food.y * GRID_SIZE + 1,
+      food.position.x * GRID_SIZE + 1,
+      food.position.y * GRID_SIZE + 1,
       GRID_SIZE - 2,
       GRID_SIZE - 2
     );
+    
+    // Draw food type indicator
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 12px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const foodCenterX = food.position.x * GRID_SIZE + GRID_SIZE / 2;
+    const foodCenterY = food.position.y * GRID_SIZE + GRID_SIZE / 2;
+    
+    if (food.type === 'double') {
+      ctx.fillText('x2', foodCenterX, foodCenterY);
+    } else if (food.type === 'slow') {
+      ctx.fillText('S', foodCenterX, foodCenterY);
+    }
 
-    // Draw snake
+    // Draw snake with slow effect indication
     snake.forEach((segment, index) => {
-      // Head is slightly different color
-      ctx.fillStyle = index === 0 ? '#44ff44' : '#22cc22';
+      // Head is slightly different color, blue tint when slowed
+      let snakeColor = index === 0 ? '#44ff44' : '#22cc22';
+      if (slowEffect > 0 && index === 0) {
+        snakeColor = '#00ffcc'; // Cyan for slowed head
+      }
+      
+      ctx.fillStyle = snakeColor;
       ctx.fillRect(
         segment.x * GRID_SIZE + 1,
         segment.y * GRID_SIZE + 1,
@@ -105,7 +132,18 @@ const GameCanvas = ({ snake, food, gameState }: GameCanvasProps) => {
       ctx.fillText('Press ENTER to start', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 10);
     }
 
-  }, [snake, food, gameState]);
+    // Draw slow effect indicator
+    if (gameState === 'playing' && slowEffect > 0) {
+      ctx.fillStyle = 'rgba(0, 170, 255, 0.2)';
+      ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+      
+      ctx.fillStyle = '#00aaff';
+      ctx.font = 'bold 16px Inter, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(`SLOW: ${slowEffect}`, 10, 20);
+    }
+
+  }, [snake, food, gameState, slowEffect]);
 
   return (
     <canvas
